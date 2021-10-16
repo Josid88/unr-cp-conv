@@ -1,14 +1,17 @@
 package dev.josid.util.file;
 
+import java.nio.file.Path;
 import java.util.List;
 
 
 public class FileEditLine {
 
+    public final Path sourcePath;
     private final List<String> fileLines;
     private final int index;
 
-    public FileEditLine(List<String> fileLines, int index) {
+    public FileEditLine(Path sourcePath, List<String> fileLines, int index) {
+        this.sourcePath = sourcePath;
         this.fileLines = fileLines;
         this.index = index;
     };
@@ -33,4 +36,7 @@ public class FileEditLine {
         return index-offset >= 0 ? fileLines.get(index+offset) : null;
     }
 
+    public int getIndex() {
+        return index;
+    }
 }

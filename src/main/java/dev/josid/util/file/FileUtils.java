@@ -4,7 +4,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,16 +70,21 @@ public class FileUtils {
         Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    public static void cloneFile(Path source, Path target, Function<FileEditLine, LineOperation> lineTransformer) throws IOException {
-        if (lineTransformer == null) {
-            cloneFile(source, target);
-            return;
-        }
+    public static void cloneFile(Path source, Path target, Function<FileEditLine, LineOperation>... lineTransformers) throws IOException {
+        Function<FileEditLine, LineOperation> lineTransformer = fileEditLine -> {
+            LineOperation lineOperation = null;
+            for ( Function<FileEditLine, LineOperation> singleLineTransformer: lineTransformers ) {
+                lineOperation = singleLineTransformer.apply(fileEditLine);
+                if (lineOperation.operation != LineOperation.Operation.NO_OPERATION)
+                    break;
+            }
+            return lineOperation;
+        };
 
         List<String> fileLines = Files.readAllLines(source);
         List<String> newFileLines = new ArrayList<>( fileLines.size() );
         for (int index = 0; index < fileLines.size(); index++) {
-            LineOperation lineOperation = lineTransformer.apply(new FileEditLine(fileLines, index));
+            LineOperation lineOperation = lineTransformer.apply(new FileEditLine(source, fileLines, index));
             switch (lineOperation.operation) {
                 case NO_OPERATION:
                     newFileLines.add(fileLines.get(index));
@@ -94,6 +98,7 @@ public class FileUtils {
             }
         }
 
+        createFile(target);
         try (BufferedWriter writer = Files.newBufferedWriter(target)) {
             for (String newLine: newFileLines) {
                 writer.write(newLine);
